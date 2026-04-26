@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantalox — Portfolio Manager</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="styles.css" rel="stylesheet">
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════
+     HEADER
+     Button logic (rule #5):
+       - No portfolio active → "New Portfolio" visible, "Save" hidden
+       - Portfolio active   → "Save" visible, "New Portfolio" hidden
+     Controlled by renderer.setHeaderPortfolioMode() in main.js.
+═══════════════════════════════════════════════════════════ -->
+<header class="header">
+    <div class="logo">
+        <div class="logo-mark">Qx</div>
+        <div>
+            <div class="logo-text">Quantalox</div>
+            <div class="logo-sub">Portfolio Manager</div>
+        </div>
+    </div>
+
+    <span class="portfolio-pill" id="portfolioNamePill" style="display:none"></span>
+
+    <div class="header-actions">
+        <button class="btn btn-outline" onclick="main.triggerUpload()">↑ Load</button>
+        <!-- Save: primary (highlighted), hidden until a portfolio is active -->
+        <button class="btn btn-primary" id="btnSave"
+                onclick="main.downloadPortfolio()" style="display:none">↓ Save</button>
+        <!-- New Portfolio: visible only when no portfolio loaded, hidden once one is active -->
+        <button class="btn btn-outline" id="btnNew"
+                onclick="main.newPortfolio()">+ New Portfolio</button>
+        <input type="file" id="fileInput" accept=".json" style="display:none">
+    </div>
+</header>
+
+<!-- ══════════════════════════════════════════════════════════
+     MAIN — THREE PANES
+═══════════════════════════════════════════════════════════ -->
+<main class="main">
+
+    <!-- LEFT: Asset Library -->
+    <aside class="panel-left">
+        <div class="panel-label">Asset Library</div>
+        <div class="search-wrap">
+            <input class="search-input" type="text" id="searchInput"
+                   placeholder="Search assets…">
+        </div>
+        <div class="asset-library" id="assetLibrary"></div>
+    </aside>
+
+    <!-- MIDDLE: Workspace -->
+    <section class="panel-mid">
+
+        <!-- Welcome screen (shown until a portfolio is loaded or created) -->
+        <div class="welcome" id="welcomeState">
+            <div class="welcome-brand">Quant<span>alox</span></div>
+            <div class="welcome-tagline">Equally-weighted portfolio discipline. Three rules. One strategy.</div>
+            <div class="welcome-rule">
+                <span><span class="rule-num">P —</span> Set a portfolio target size in EUR</span>
+                <span><span class="rule-num">01 —</span> No GICS sector above 20% of target</span>
+                <span><span class="rule-num">02 —</span> No single asset above 5% of target</span>
+                <span><span class="rule-num">03 —</span> Don't sell at a loss</span>
+            </div>
+            <div class="welcome-btns">
+                <button class="btn btn-sec" onclick="main.triggerUpload()">↑ Load Portfolio</button>
+                <button class="btn btn-primary" onclick="main.newPortfolio()">+ New Portfolio</button>
+            </div>
+        </div>
+
+        <!-- Work Area (hidden until a portfolio is active) -->
+        <div class="work-area" id="workArea">
+
+            <!-- Portfolio target -->
+            <div class="target-row">
+                <span class="target-lbl">Portfolio Target</span>
+                <div class="target-field">
+                    <span class="eur-sym">€</span>
+                    <input class="target-inp" type="number" id="targetInp"
+                           value="100000" min="0">
+                </div>
+            </div>
+
+            <!-- Capital deployment progress bar -->
+            <div class="progress-block">
+                <div class="progress-top">
+                    <span class="progress-top-lbl">Capital Deployment</span>
+                    <div class="progress-amounts">
+                        <span class="prog-current" id="progCurrent">€0,00</span>
+                        <span class="prog-sep">/</span>
+                        <span class="prog-target" id="progTarget">€100.000,00</span>
+                    </div>
+                </div>
+                <div class="track">
+                    <div class="track-fill" id="trackFill" style="width:0%"></div>
+                </div>
+                <div class="progress-foot">
+                    <span class="prog-status" id="progStatus">NO POSITIONS</span>
+                    <span class="prog-pct"    id="progPct">0.0%</span>
+                </div>
+            </div>
+
+            <!-- Composition section header: label + equal-weight guide -->
+            <div class="comp-header">
+                <span class="comp-lbl">Portfolio Composition</span>
+                <span class="comp-guide" id="compGuide"></span>
+            </div>
+
+            <!-- Sector/asset composition blocks rendered here -->
+            <div id="compositionArea">
+                <div class="empty-comp">
+                    ← Click any asset in the library to add it to your portfolio.
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- RIGHT: Advisory Engine -->
+    <aside class="panel-right">
+        <div class="panel-label">Advisory Engine</div>
+        <div class="right-scroll" id="advisoryPanel"></div>
+    </aside>
+
+</main>
+
+<!-- ══════════════════════════════════════════════════════════
+     SCRIPTS — load order:
+       1. assetlist.js  — YOUR asset database (sets global ASSET_DB)
+       2. fmt.js        — shared formatting utilities
+       3. portfolio.js  — Portfolio class
+       4. rules.js      — RulesEngine class
+       5. render.js     — Renderer class
+       6. main.js       — orchestrator, event wiring
+═══════════════════════════════════════════════════════════ -->
+<script src="assetlist.js"></script>
+<script src="fmt.js"></script>
+<script src="portfolio.js"></script>
+<script src="rules.js"></script>
+<script src="render.js"></script>
+<script src="main.js"></script>
+
+</body>
+</html>
