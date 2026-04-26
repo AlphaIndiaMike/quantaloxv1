@@ -515,6 +515,7 @@ body {
     align-items: baseline;
     justify-content: space-between;
     margin-bottom: 0.65rem;
+    gap: 0.5rem;
 }
 
 .comp-lbl {
@@ -525,12 +526,35 @@ body {
     font-weight: 600;
 }
 
+.comp-header-right {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
 .comp-guide {
     font-size: 0.65rem;
     color: var(--text-mid);
     font-family: 'JetBrains Mono', monospace;
 }
 .comp-guide strong { color: var(--accent); font-weight: 600; }
+
+.btn-sort {
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    color: var(--text-dim);
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.6rem;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    padding: 0.15rem 0.5rem;
+    cursor: pointer;
+    transition: all 0.13s;
+    white-space: nowrap;
+}
+.btn-sort:hover        { border-color: var(--accent); color: var(--accent); }
+.btn-sort.sort-active  { background: var(--accent-light); border-color: var(--accent); color: var(--accent); }
 
 .empty-comp {
     font-size: 0.75rem;

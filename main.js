@@ -18,9 +18,10 @@ const main = (() => {
        Module-level state
     ─────────────────────────────────────────────────────────────── */
 
-    let portfolio = null;   // Portfolio instance, or null when none loaded
-    let renderer  = null;   // Renderer instance
-    let engine    = null;   // RulesEngine instance
+    let portfolio    = null;   // Portfolio instance, or null when none loaded
+    let renderer     = null;   // Renderer instance
+    let engine       = null;   // RulesEngine instance
+    let _sortByValue = false;  // composition sort toggle
 
     /* ──────────────────────────────────────────────────────────────
        Initialisation (called on DOMContentLoaded)
@@ -66,7 +67,7 @@ const main = (() => {
         };
 
         renderer.progressBar(stats);
-        renderer.composition(stats);
+        renderer.composition(stats, _sortByValue);
         renderer.advisory(recs, projections, stats.totalValue);
         renderer.updateHeader(portfolio.name);
         _refreshLibrary(document.getElementById('searchInput').value);
@@ -101,8 +102,8 @@ const main = (() => {
 
     /**
      * Called on every keystroke in a row's inputs.
-     * Marks the ✓ button as dirty so the user knows there are uncommitted changes.
-     * Does NOT re-render — that only happens on explicit ✓ click.
+     * Marks the ✓ button as dirty — visual signal of uncommitted changes.
+     * Does NOT re-render.
      */
     function onRowDirty(isin) {
         const btn = document.getElementById(`validate-${isin}`);
@@ -110,19 +111,23 @@ const main = (() => {
     }
 
     /**
-     * Reads both qty and purchase price directly from the DOM inputs
-     * for a given ISIN, commits them to the portfolio, then re-renders.
-     * Called by the ✓ button on each asset row.
+     * Saves ALL visible rows (not just the clicked one) then re-renders.
+     * This way editing multiple rows and clicking any ✓ commits everything.
      */
-    function onValidateRow(isin) {
+    function onValidateRow() {
         if (!portfolio) return;
+        portfolio.members.forEach(m => {
+            const qtyEl   = document.getElementById(`qty-${m.ISIN}`);
+            const priceEl = document.getElementById(`price-${m.ISIN}`);
+            if (qtyEl)   portfolio.setQty(m.ISIN, qtyEl.value);
+            if (priceEl) portfolio.setPurchasePrice(m.ISIN, priceEl.value);
+        });
+        _render();
+    }
 
-        const qtyEl   = document.getElementById(`qty-${isin}`);
-        const priceEl = document.getElementById(`price-${isin}`);
-
-        if (qtyEl)   portfolio.setQty(isin, qtyEl.value);
-        if (priceEl) portfolio.setPurchasePrice(isin, priceEl.value);
-
+    /** Toggles composition sort between insertion order and value descending. */
+    function onToggleSort() {
+        _sortByValue = !_sortByValue;
         _render();
     }
 
@@ -214,6 +219,7 @@ const main = (() => {
         onRemoveAsset,
         onRowDirty,
         onValidateRow,
+        onToggleSort,
         onTargetChange,
         triggerUpload,
         newPortfolio,

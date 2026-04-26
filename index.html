@@ -105,10 +105,15 @@
                 </div>
             </div>
 
-            <!-- Composition section header: label + equal-weight guide -->
+            <!-- Composition section header: label + sort toggle + equal-weight guide -->
             <div class="comp-header">
                 <span class="comp-lbl">Portfolio Composition</span>
-                <span class="comp-guide" id="compGuide"></span>
+                <div class="comp-header-right">
+                    <button class="btn-sort" id="btnSort"
+                            onclick="main.onToggleSort()"
+                            title="Toggle sort by sector value">↕ Sort by value</button>
+                    <span class="comp-guide" id="compGuide"></span>
+                </div>
             </div>
 
             <!-- Sector/asset composition blocks rendered here -->

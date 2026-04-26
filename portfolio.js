@@ -116,11 +116,13 @@ class Portfolio {
             sectorMap[a.sector].assets.push({ member: m, asset: a, value: val });
         });
 
-        // Sort sectors by value descending; Cash always last
+        // Preserve insertion order of sectors (order assets were added).
+        // Sorting is an opt-in toggle in the UI, not applied here.
+        // Cash always last regardless.
         const sectors = Object.values(sectorMap).sort((a, b) => {
             if (a.sector.id === 12) return  1;
             if (b.sector.id === 12) return -1;
-            return b.value - a.value;
+            return 0; // preserve map insertion order
         });
 
         // Count non-cash sectors that have assets — used for the equal-weight guide
@@ -151,12 +153,14 @@ class Portfolio {
 
             const growthFactor = Math.abs(a.perf_y_y_eur);
             const currentValue = m.qty * a.preis_eur;
-            const costBasis    = m.qty * (m.purchase_price_eur || a.preis_eur);
 
-            // Capital: compound growth, tax on realised gain at exit
-            const futureValue = currentValue * Math.pow(growthFactor, years);
-            const capitalGain = Math.max(0, futureValue - costBasis);
-            const capitalTax  = capitalGain * (kl?.taxable_inc ?? 1) * taxRate;
+            // Capital: compound growth from today's value.
+            // Tax is applied only on gains ACCRUED DURING the projection period,
+            // not on already-accumulated unrealised gains (which are a separate
+            // concern handled by Rule 3 / purchase_price_eur).
+            const futureValue    = currentValue * Math.pow(growthFactor, years);
+            const projectedGain  = Math.max(0, futureValue - currentValue);
+            const capitalTax     = projectedGain * (kl?.taxable_inc ?? 1) * taxRate;
             capital += futureValue - capitalTax;
 
             // Dividends: gross per year, compounded underlying growth, net after tax

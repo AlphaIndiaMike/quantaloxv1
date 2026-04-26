@@ -148,7 +148,7 @@ class Renderer {
        Columns: Asset name | Qty | Buy @ | Current value | % target | ✕
     ─────────────────────────────────────────────────────────────── */
 
-    composition(stats) {
+    composition(stats, sortByValue = false) {
         this._updateEqualGuide(stats);
 
         if (!stats.sectors.length) {
@@ -157,10 +157,23 @@ class Renderer {
             return;
         }
 
+        // Sort is opt-in — insertion order is the default
+        const sectors = sortByValue
+            ? [...stats.sectors].sort((a, b) => {
+                if (a.sector.id === 12) return  1;
+                if (b.sector.id === 12) return -1;
+                return b.value - a.value;
+              })
+            : stats.sectors;
+
+        // Update sort button appearance
+        const btnSort = document.getElementById('btnSort');
+        if (btnSort) btnSort.classList.toggle('sort-active', sortByValue);
+
         const { target } = stats;
         let html = '';
 
-        stats.sectors.forEach(({ sector, value, assets }) => {
+        sectors.forEach(({ sector, value, assets }) => {
             const sectorPct = value / target * 100;
             const isOver    = sector.id !== 12 && sectorPct > 20;
             const isWarn    = sector.id !== 12 && sectorPct > 18;
@@ -229,7 +242,7 @@ class Renderer {
                     <div class="row-actions">
                         <button class="btn-validate"
                             id="validate-${m.ISIN}"
-                            onclick="main.onValidateRow('${m.ISIN}')"
+                            onclick="main.onValidateRow()"
                             title="Confirm changes">✓</button>
                         <button class="btn-rm"
                             onclick="main.onRemoveAsset('${m.ISIN}')"
