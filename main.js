@@ -10,8 +10,6 @@
  * Depends on: data.js, fmt.js, portfolio.js, rules.js, render.js
  */
 
-const TAX_RATE = 0.26; // Capital gains tax rate — adjust here for different jurisdictions
-
 const main = (() => {
 
     /* ──────────────────────────────────────────────────────────────
@@ -54,15 +52,17 @@ const main = (() => {
         if (!portfolio) return;
 
         const stats = portfolio.computeStats();
-        engine      = new RulesEngine(portfolio, TAX_RATE);
+        engine      = new RulesEngine(portfolio);
         const recs  = engine.generate(stats);
 
         const projections = {
-            taxRate:  TAX_RATE,
+            heldISINs: portfolio.members.map(m => m.ISIN),
             horizons: [
-                { label: '1 Year',   data: portfolio.project(1,  TAX_RATE) },
-                { label: '5 Years',  data: portfolio.project(5,  TAX_RATE) },
-                { label: '10 Years', data: portfolio.project(10, TAX_RATE) }
+                { label: '1 Month',  data: portfolio.project('perf_m1',  1/12) },
+                { label: '3 Months', data: portfolio.project('perf_m3',  3/12) },
+                { label: '6 Months', data: portfolio.project('perf_m6',  6/12) },
+                { label: '1 Year',   data: portfolio.project('perf_1y',  1)    },
+                { label: '3 Years',  data: portfolio.project('perf_3y',  3)    }
             ]
         };
 

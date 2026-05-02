@@ -142,35 +142,52 @@ class Portfolio {
        Returns { total, capital, dividends } for a given year horizon.
     ─────────────────────────────────────────────────────────────── */
 
-    project(years, taxRate = 0.26) {
-        let capital = 0;
+    /* ──────────────────────────────────────────────────────────────
+       Performance projection for a given period.
+
+       Uses actual historical performance fields from assetlist.js:
+         perf_m1, perf_m3, perf_m6, perf_1y, perf_3y
+
+       Math: gain = current_value × (perf_Xy - 1)
+       e.g.  perf_1y = 1.0706  →  +7.06% gain over 1 year
+             perf_3y = 0.9630  →  -3.70% loss over 3 years
+
+       Dividends are shown separately as a flat annual yield
+       scaled to the period (no compounding, no tax).
+
+       Returns { gain, dividends, total, perfPct }
+    ─────────────────────────────────────────────────────────────── */
+
+    project(perfKey, yearsForDividends = 1) {
+        let gain      = 0;
         let dividends = 0;
 
         this.members.forEach(m => {
-            const a  = this.assetOf(m.ISIN);
+            const a = this.assetOf(m.ISIN);
             if (!a) return;
-            const kl = this.assetClassOf(a.asset_class);
 
-            const growthFactor = Math.abs(a.perf_y_y_eur);
             const currentValue = m.qty * a.preis_eur;
+            const perf         = a[perfKey];
 
-            // Capital: compound growth from today's value.
-            // Tax is applied only on gains ACCRUED DURING the projection period,
-            // not on already-accumulated unrealised gains (which are a separate
-            // concern handled by Rule 3 / purchase_price_eur).
-            const futureValue    = currentValue * Math.pow(growthFactor, years);
-            const projectedGain  = Math.max(0, futureValue - currentValue);
-            const capitalTax     = projectedGain * (kl?.taxable_inc ?? 1) * taxRate;
-            capital += futureValue - capitalTax;
-
-            // Dividends: gross per year, compounded underlying growth, net after tax
-            for (let y = 0; y < years; y++) {
-                const grossDiv = m.qty * a.dividend_y_y_eur * Math.pow(growthFactor, y);
-                dividends += grossDiv * (1 - (kl?.taxable_inc ?? 1) * taxRate);
+            // Capital gain for the period — only if data is available
+            if (perf != null) {
+                gain += currentValue * (perf - 1);
             }
+
+            // Dividends: flat annual yield scaled to the period
+            dividends += m.qty * (a.dividend_y_y_eur || 0) * yearsForDividends;
         });
 
-        return { total: capital + dividends, capital, dividends };
+        const totalValue = this.members.reduce(
+            (sum, m) => sum + m.qty * (this.assetOf(m.ISIN)?.preis_eur || 0), 0
+        );
+
+        return {
+            gain,
+            dividends,
+            total:    totalValue + gain + dividends,
+            perfPct:  totalValue > 0 ? (gain / totalValue) * 100 : 0
+        };
     }
 
     /* ──────────────────────────────────────────────────────────────

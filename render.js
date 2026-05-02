@@ -192,7 +192,8 @@ class Renderer {
                     <div>Asset</div>
                     <div class="tr">Qty</div>
                     <div class="tr">Buy @</div>
-                    <div class="tr">Value</div>
+                    <div></div>
+                    <div class="tr">Current Value</div>
                     <div class="tr">% Tgt</div>
                     <div></div>
                 </div>`;
@@ -219,7 +220,7 @@ class Renderer {
                     <div class="asset-row-name">
                         ${fmt.shortName(a.name, 30)}
                         <span class="asset-row-isin">
-                            ${a.ISIN}${pnlStr ? ` <span class="${pnlCls}">· ${pnlStr}</span>` : ''}
+                            ${a.ISIN} · ${fmt.eur(a.preis_eur)}${pnlStr ? ` <span class="${pnlCls}">· ${pnlStr}</span>` : ''}
                         </span>
                     </div>
                     <div>
@@ -235,15 +236,17 @@ class Renderer {
                             value="${purchasePrice || ''}"
                             placeholder="${fmt.num(a.preis_eur)}"
                             oninput="main.onRowDirty('${m.ISIN}')"
-                            title="Purchase price per unit (used for Rule 3 — do not lose money)">
+                            title="Purchase price per unit">
                     </div>
-                    <div class="asset-row-val">${fmt.eur(av)}</div>
-                    <div class="asset-row-pct ${pctCls}">${fmt.pct(assetPct)}</div>
-                    <div class="row-actions">
+                    <div>
                         <button class="btn-validate"
                             id="validate-${m.ISIN}"
                             onclick="main.onValidateRow()"
                             title="Confirm changes">✓</button>
+                    </div>
+                    <div class="asset-row-val">${fmt.eur(av)}</div>
+                    <div class="asset-row-pct ${pctCls}">${fmt.pct(assetPct)}</div>
+                    <div>
                         <button class="btn-rm"
                             onclick="main.onRemoveAsset('${m.ISIN}')"
                             title="Remove from portfolio">✕</button>
@@ -273,27 +276,59 @@ class Renderer {
             </div>`;
         });
 
-        html += `
-        <div class="growth-block">
-            <div class="growth-hd">Growth Estimation · Net After Tax (${Math.round(projections.taxRate * 100)}%)</div>`;
+        // Performance Estimation — only show if all portfolio assets have perf fields
+        const PERF_FIELDS = ['perf_m1', 'perf_m3', 'perf_m6', 'perf_1y', 'perf_3y'];
+        const missingAssets = [];
 
-        projections.horizons.forEach(({ label, data }) => {
-            const gain    = data.total - currentValue;
-            const gainCls = gain >= 0 ? 'g-pos' : 'g-neg';
-            const gainStr = (gain >= 0 ? '+' : '') + fmt.eur(gain);
+        if (projections && projections.horizons) {
+            // Check which assets are missing perf data
+            // We access ASSET_DB directly since renderer knows about it
+            if (typeof ASSET_DB !== 'undefined') {
+                const heldISINs = projections.heldISINs || [];
+                heldISINs.forEach(isin => {
+                    const a = ASSET_DB.assets.find(x => x.ISIN === isin);
+                    if (!a) return;
+                    const missing = PERF_FIELDS.filter(f => a[f] == null);
+                    if (missing.length > 0) missingAssets.push(a.name);
+                });
+            }
+        }
 
+        html += `<div class="growth-block"><div class="growth-hd">Performance Estimation</div>`;
+
+        if (missingAssets.length > 0) {
             html += `
-            <div class="growth-row">
-                <div class="growth-period">${label}</div>
-                <div class="growth-right">
-                    <div class="growth-total">${fmt.eur(data.total)}</div>
-                    <div class="growth-detail">
-                        <span class="${gainCls}">${gainStr}</span>
-                        &nbsp;· Div: ${fmt.eur(data.dividends, 0)}
-                    </div>
+            <div class="rec-card sev-info">
+                <div class="rec-title info">Cannot be calculated</div>
+                <div class="rec-body">
+                    One or more assets are missing historical performance data.
+                    Add the following fields to each asset in <code>assetlist.js</code>:
                 </div>
+                <span class="rec-action">"perf_m1": 1.0281</span>
+                <span class="rec-action">"perf_m3": 1.0588</span>
+                <span class="rec-action">"perf_m6": 1.0861</span>
+                <span class="rec-action">"perf_1y": 1.0706</span>
+                <span class="rec-action">"perf_3y": 0.9630</span>
             </div>`;
-        });
+        } else if (projections && projections.horizons) {
+            projections.horizons.forEach(({ label, data }) => {
+                const gainCls = data.gain >= 0 ? 'g-pos' : 'g-neg';
+                const gainStr = (data.gain >= 0 ? '+' : '') + fmt.eur(data.gain, 0);
+                const pctStr  = (data.perfPct >= 0 ? '+' : '') + fmt.pct(data.perfPct);
+
+                html += `
+                <div class="growth-row">
+                    <div class="growth-period">${label}</div>
+                    <div class="growth-right">
+                        <div class="growth-total">${fmt.eur(data.total, 0)}</div>
+                        <div class="growth-detail">
+                            <span class="${gainCls}">${gainStr} (${pctStr})</span>
+                            &nbsp;· Div: ${fmt.eur(data.dividends, 0)}
+                        </div>
+                    </div>
+                </div>`;
+            });
+        }
 
         html += '</div>';
         this.elAdvisory.innerHTML = html;
